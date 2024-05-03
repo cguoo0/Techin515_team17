@@ -1,0 +1,95 @@
+
+/*********
+Header file
+
+Instructions for AWS - https://how2electronics.com/connecting-esp32-to-amazon-aws-iot-core-using-mqtt/
+
+*********/
+
+#include <pgmspace.h>
+ 
+#define SECRET
+#define THINGNAME "ESP_WROOM_32"                      //TO DO: type your thing name between the quotation marks
+ 
+const char WIFI_SSID[] = "UW MPSK";              //TO DO: type the WiFi network name (eg. "UW MPSK")
+const char WIFI_PASSWORD[] = "VcT?4Vh&(,";          //TO DO: type the WiFi password in the quotes
+const char AWS_IOT_ENDPOINT[] = "a20fxcajbhdrn1-ats.iot.us-east-2.amazonaws.com";       //TO DO: type your AWS IoT endpoint, located on the Settings page of the AWS IoT Console
+ 
+// Amazon Root CA 1                           //TO DO: copy the Amazon Root CA 1 Certificate Key below
+static const char AWS_CERT_CA[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF
+ADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6
+b24gUm9vdCBDQSAxMB4XDTE1MDUyNjAwMDAwMFoXDTM4MDExNzAwMDAwMFowOTEL
+MAkGA1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJv
+b3QgQ0EgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALJ4gHHKeNXj
+ca9HgFB0fW7Y14h29Jlo91ghYPl0hAEvrAIthtOgQ3pOsqTQNroBvo3bSMgHFzZM
+9O6II8c+6zf1tRn4SWiw3te5djgdYZ6k/oI2peVKVuRF4fn9tBb6dNqcmzU5L/qw
+IFAGbHrQgLKm+a/sRxmPUDgH3KKHOVj4utWp+UhnMJbulHheb4mjUcAwhmahRWa6
+VOujw5H5SNz/0egwLX0tdHA114gk957EWW67c4cX8jJGKLhD+rcdqsq08p8kDi1L
+93FcXmn/6pUCyziKrlA4b9v7LWIbxcceVOF34GfID5yHI9Y/QCB/IIDEgEw+OyQm
+jgSubJrIqg0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
+AYYwHQYDVR0OBBYEFIQYzIU07LwMlJQuCFmcx7IQTgoIMA0GCSqGSIb3DQEBCwUA
+A4IBAQCY8jdaQZChGsV2USggNiMOruYou6r4lK5IpDB/G/wkjUu0yKGX9rbxenDI
+U5PMCCjjmCXPI6T53iHTfIUJrU6adTrCC2qJeHZERxhlbI1Bjjt/msv0tadQ1wUs
+N+gDS63pYaACbvXy8MWy7Vu33PqUXHeeE6V/Uq2V8viTO96LXFvKWlJbYK8U90vv
+o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
+5MsI+yMRQ+hDKXJioaldXgjUkK642M4UwtBV8ob2xJNDd2ZhwLnoQdeXeGADbkpy
+rqXRfboQnoZsG4q5WTP468SQvvG5
+-----END CERTIFICATE-----
+)EOF";
+ 
+// Device Certificate                         //TO DO: copy and paste the Device Certificate Key below
+static const char AWS_CERT_CRT[] PROGMEM = R"KEY(
+-----BEGIN CERTIFICATE-----
+MIIDWTCCAkGgAwIBAgIUc3ow7BnCkIA09P+JgKHqgT4r3AIwDQYJKoZIhvcNAQEL
+BQAwTTFLMEkGA1UECwxCQW1hem9uIFdlYiBTZXJ2aWNlcyBPPUFtYXpvbi5jb20g
+SW5jLiBMPVNlYXR0bGUgU1Q9V2FzaGluZ3RvbiBDPVVTMB4XDTI0MDQyNjIzMjcz
+NloXDTQ5MTIzMTIzNTk1OVowHjEcMBoGA1UEAwwTQVdTIElvVCBDZXJ0aWZpY2F0
+ZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKppFv6vU2oGdFl7Olkg
+eBAG6/RShLG9nsjDtkyk2b6WQff7PmI9h+3wxH1l5gx0u2P4DTq28gsSk6NeSV36
+VPVVWiRKRRQ3nXeMO/rUK6RIFdmqNlgzGnseAAwkdluCh6QLPBrfMIg5K9Ypr6gW
+Qtur9hpqvpRRT856zSFARZI5Fs7BF0IXZjnwpzCciZESaSgxjJNvTEPNH4tgtU9E
+g+o9p8sb8Gemlbe29Cyifnsro7Yammuu/2PHpsTfDjd9VcFnh+imDnNEjYbQDL37
+5CdqPe7MgRAjILHiyV32iQowz8LfUpfDUxhW3ERF/kLwFkVTJlrpjXDWgHbQ4pxW
+69ECAwEAAaNgMF4wHwYDVR0jBBgwFoAUA+3nLzZ7HtWVYVmcOQ8k0zB1flUwHQYD
+VR0OBBYEFBq4O+F7sInfGSydXx86R1AlpaJCMAwGA1UdEwEB/wQCMAAwDgYDVR0P
+AQH/BAQDAgeAMA0GCSqGSIb3DQEBCwUAA4IBAQCVKSixEP8MBODGU+tCL0y4xvVx
+kJCK6TuVsw/tAC4K63xe0t7ky2q06U9S6JPilmWvhYsm2sWn2l2IR4FfgK9FAhoL
+5HlDmR6sTaDzgdQlVZrwQhaJPBZlqAUTtzUi8Ev/tD+LWtjYSYp2uwZ4/yxl4YFB
+KrO7fJ30akAHbY4rT9ms6O5+7igzONC+fp08+mjJMCl04CF+WgzPGkwxBUNV+Ob0
+YNw84eh3J7csW3nG2DN0cukUvp4J9aCxyxfe/IrVxjX+qgCT/Hw21LZ92Eoqlwkk
+vj2ErEJRr2lMe29BqRF5zZr8U7K6oFlRKBgm/ANujDpn34RzduSGwMT/ledf
+-----END CERTIFICATE-----
+)KEY";
+ 
+// Device Private Key                         //TO DO: copy and paste the Device Private Key below
+static const char AWS_CERT_PRIVATE[] PROGMEM = R"KEY(
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAqmkW/q9TagZ0WXs6WSB4EAbr9FKEsb2eyMO2TKTZvpZB9/s+
+Yj2H7fDEfWXmDHS7Y/gNOrbyCxKTo15JXfpU9VVaJEpFFDedd4w7+tQrpEgV2ao2
+WDMaex4ADCR2W4KHpAs8Gt8wiDkr1imvqBZC26v2Gmq+lFFPznrNIUBFkjkWzsEX
+QhdmOfCnMJyJkRJpKDGMk29MQ80fi2C1T0SD6j2nyxvwZ6aVt7b0LKJ+eyujthqa
+a67/Y8emxN8ON31VwWeH6KYOc0SNhtAMvfvkJ2o97syBECMgseLJXfaJCjDPwt9S
+l8NTGFbcREX+QvAWRVMmWumNcNaAdtDinFbr0QIDAQABAoIBAGaEJiM9Uk8cZu5V
+5bosgE4T++rVoaJT0qwwoQDmw1+WgUUvzk3Heni4OVy+6nBf4UO4vCywVlg26r6D
+QFva9zVIDZx7WadZ9c8ve/3fmgmQnCR/84WH6MxcNecYIGPY2MTlRVldH5Mz4Z1L
+IrNaAQqqHrmxsckESaCL28+/HJtj5VDeRkZ8zMo0jMXiXw/Qzw8DdVTmCKPpy80T
+f5RudP/gpIDqtNzzUPyIDMIA9fiF4IvkmFu0FpaC9gOKfjXRWLkqgljU5jg+vxhf
+yVW5mBKf2NCaXZSAh42cn7TR+ZslZyosEMV9NRAFfqMzZqzd0azqHd4Aa4EcMBUR
+AGgN72kCgYEA2FZd90ajs1da8wHfhrv9i5YY40xHw5vIjJUpU2cuvtcsjConwkht
+clOV27ztBoyrs78vWYQFnjsbfbFFHZpoPHLz6tXadPVPSZHpXTp7EMVMht+131tx
+W46srnQWZtAnHnb+QOFX76LR04aMNip5zfgqPZIcpk+hPPMwYzjiZOsCgYEAyacu
+ANlXwb95VdV5xknrqsg+/qXeN0IZHs5g9eL0h0iCDDrSP41ICLSFZMhk/gGQkOFD
+Zz0b5Cyfj26HSwkbFQEwEx+oHTEz0zOr4qGS1s9sOKJEoM3ce1khKZ4kI/WofNjn
+KqmJg2XDezLFfwGxmb8/C8TTIGO9OR3vzwbmMzMCgYEAjGhprj7Lqm9M2SFjGQhU
+A8+UMZnljeBC5nM9EiOK5FO1VvdZPLBTUHtNbQOOdsy/9/Zi3d9g4hSMwCRYrmDz
+vCADjWvk0DoSjrZD1r1I+FaFV5hEa0XnKbxM+SDhFTON4Cjs1eEreJ2dP4M450Lk
+MTka+UEmlQ5joLJZulxGG6cCgYEAlyBv3bsFhfLWIHno1a64rDl+3KG6tHcZFHlf
+OWhqEqlIrZm30GE1xzBjeHCnH6ZUjgAE3+5wZMT8oCYZxyZ/4XIOcYacG6SwTmy/
+OQ4WWl8BoEAcZtdhkh/uNp6KP1jweQCl3tdIc+1kX4Rhdxnx3GP0AAH2qKOXQKMr
+AmENTPkCgYBHZkm4dDWientoYWCk3MX9tT5GsQ8910EZl6xk3W7KKXSPdICzirE6
+z6UbRCi/9z3RkLRmaMOGsvFImZijWcegCu3WJA7A4ebogAqTho0j9adpRHgoBH+v
+E5LPvp7mX1p8bjHqi6rLynn5KXTBKGIF+BGrCDHQQC9Kf/bmNlnS5w==
+-----END RSA PRIVATE KEY-----
+)KEY";
